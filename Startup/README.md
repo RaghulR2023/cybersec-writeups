@@ -1,5 +1,9 @@
 # TryHackMe - Startup Writeup
 
+<p align="center">
+  <img src="startup.png" alt="Startup Room" width="700">
+</p>
+
 ## Overview
 
 Startup is a beginner-friendly Linux machine that focuses on enumeration, web exploitation, packet analysis, credential harvesting, and privilege escalation. The attack chain begins with anonymous FTP access and ends with root access through a misconfigured root-executed script.
