@@ -9,7 +9,7 @@ The goal of these writeups is to improve my methodology, reinforce concepts thro
 | Room     | Difficulty | Topics Covered                                                                                | Writeup           |
 | -------- | ---------- | --------------------------------------------------------------------------------------------- | ----------------- |
 | Startup  | Easy       | FTP Abuse, Web Shell Upload, Reverse Shell, PCAP Analysis, Privilege Escalation               | [View](Startup/)  |
-| Tomghost | Easy       | Ghostcat (CVE-2020-1938), GPG Key Abuse, Credential Harvesting, GTFOBins Privilege Escalation | [View](Tomghost/) |
+| Tomghost | Easy       | Ghostcat (CVE-2020-1938), GPG Key Abuse, Credential Harvesting, GTFOBins Privilege Escalation | [View](tomghost/) |
 
 More writeups will be added as I continue learning penetration testing, vulnerability assessment, and offensive security techniques.
 
